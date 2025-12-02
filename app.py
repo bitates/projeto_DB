@@ -40,7 +40,7 @@ def list_movies():
 def get_movie(id):
     movie = db.execute(
         '''
-        select id_show, title, releaseDate, description, duration, tagline, num_seasons, metascore, metascore_count, userscore, userscore_cout
+        select id_show, title, releaseDate, description, duration, tagline, num_seasons, metascore, metascore_count, userscore, userscore_count
         from shows
         where id_show = ? 
         ''', [id]).fetchone()
@@ -70,7 +70,7 @@ def get_movie(id):
         '''
         select id_genre, genre
         from shows natural join genre_of 
-                   natural join GENRE
+                   natural join genres
         where id_show = ?
         order by genre
         ''',[id]
@@ -89,7 +89,7 @@ def get_movie(id):
     director = db.execute(
         '''
         select id_name, name
-        from shows natural join  directed_by 
+        from shows natural join directed_by 
                    natural join people
         where id_show = ?
         order by name 
@@ -99,7 +99,7 @@ def get_movie(id):
     created_by = db.execute(
         '''
         select id_name, name
-        from shows natural join  created_by 
+        from shows natural join created_by 
                    natural join people
         where id_show = ?
         order by name 
@@ -130,11 +130,11 @@ def get_movie(id):
                 movie=movie, sentiment_u=sentiment_u, sentiment_m =sentiment_m, genres=genres, writer=writer, director=director, created_by=created_by, cast=cast, rating=rating )   
     
     
-@APP.rout('/movies/search/<expr/>')
+@APP.route('/movies/search/<expr>/')
 def search_movie(expr):
     search = { 'expr': expr}
     expr = '%' + expr + '%'
-    movie = db.execute(
+    movies = db.execute(
          '''
         select id_show, title
         from shows
@@ -143,9 +143,10 @@ def search_movie(expr):
     ).fetchall()
     return render_template('movie-search.html', search=search, movies=movies)
 
+# writer
 
 @APP.route('/writers/')
-def list_writers(id):
+def list_writers():
     writers = db.execute(
         '''
         select id_name, name
@@ -166,7 +167,7 @@ def view_movies_by_writer(id):
     ).fetchone()
 
     if writer is None:
-        abort(404, 'Actor id {} does exist.'.format(id))
+        abort(404, 'Actor id {} does not exist.'.format(id))
 
     movies = db.execute(
         '''
@@ -194,9 +195,10 @@ def search_writer(expr):
 
     return render_template('writer-search.html', search=search, writers=writers)
     
+#--- disrectors
 
 @APP.route('/directors/')
-def list_directors(id):
+def list_directors():
     directors = db.execute(
         '''
         select id_name, name
@@ -217,7 +219,7 @@ def view_movies_by_director(id):
     ).fetchone()
 
     if director is None:
-        abort(404, 'Director id {} does exist.'.format(id))
+        abort(404, 'Director id {} does not exist.'.format(id))
 
     movies = db.execute(
         '''
@@ -245,27 +247,133 @@ def search_director(expr):
 
     return render_template('director-search.html', search=search, directors=directors)
 
+#--- creators
 
-# falta o  criador e os cast <-
+@APP.route('/creators/')
+def list_creators():
+    creators = db.execute(
+        '''
+        select id_name, name
+        from shows natural join created_by 
+                   natural join people
+        order by name
+        ''').fetchall()
+    return render_template('creator-list.html', creators=creators)    
+    
+@APP.route('/creators/<int:id>/')
+def view_movies_by_creator(id):
+    creator = db.execute(
+        '''
+        select id_name, name
+        from people
+        where id_name = ?
+        ''',[id]
+    ).fetchone()
+
+    if creator is None:
+        abort(404, 'Creator id {} does not exist.'.format(id))
+
+    movies = db.execute(
+        '''
+        select id_show, title
+        from shows natural join created_by
+                   natural join people
+        where id_name = ?
+        order by title
+        ''',[id]
+    ).fetchall()
+
+    return render_template('creator.html', creator=creator, movies=movies)
+
+@APP.route('/creators/search/<expr>/')
+def search_creator(expr):
+    search = { 'expr': expr}
+    expr = '%' + expr + '%'
+    creators = db.execute(
+        '''
+        select id_name, name
+        from people
+        where name like ?
+        ''',[expr]
+    ).fetchall()
+
+    return render_template('creator-search.html', search=search, creators=creators)
+
+
+# cast
+
+@APP.route('/cast/')
+def list_cast():
+    cast = db.execute(
+        '''
+        select id_name, name
+        from shows natural join cast_by 
+                   natural join people
+        order by name
+        ''').fetchall()
+    return render_template('cast-list.html', cast=cast)    
+    
+@APP.route('/cast/<int:id>/')
+def view_movies_by_cast(id):
+    cast = db.execute(
+        '''
+        select id_name, name
+        from people
+        where id_name = ?
+        ''',[id]
+    ).fetchone()
+
+    if cast is None:
+        abort(404, 'Cast id {} does not exist.'.format(id))
+
+    movies = db.execute(
+        '''
+        select id_show, title
+        from shows natural join cast_by
+                   natural join people
+        where id_name = ?
+        order by title
+        ''',[id]
+    ).fetchall()
+
+    return render_template('cast.html', cast=cast, movies=movies)
+
+@APP.route('/cast/search/<expr>/')
+def search_cast(expr):
+    search = { 'expr': expr}
+    expr = '%' + expr + '%'
+    cast = db.execute(
+        '''
+        select id_name, name
+        from people
+        where name like ?
+        ''',[expr]
+    ).fetchall()
+
+    return render_template('cast-search.html', search=search, cast=cast)
+
+
 
 
 @APP.route('/genres/')
 def list_genres():
     genres = db.execute(
-    '''
-    select id_genre, genre
-    from genres
-    order by genre  
-    ''').fetchall()
+        '''
+        select id_genre, genre
+        from genres
+        order by genre  
+        ''').fetchall()
+
+    return render_template('genre-list.html', genres=genres)    
 
 @APP.route('/genres/<int:id>')
 def view_movies_by_genre(id):
     genre = db.execute(
-    '''
-    select id_genre, genre
-    from genre
-    where id_genre = ?
-    ''',[id]).fetchone()
+        '''
+        select id_genre, genre
+        from genres
+        where id_genre = ?
+        ''',[id]).fetchone()
 
     if genre is None:
         abort(404, 'Genre id {} does not exit.'.format(id))
@@ -273,7 +381,7 @@ def view_movies_by_genre(id):
     movies = db.execute(
         '''
         select id_show, title
-        from shows natural join genre_by
+        from shows natural join genre_of
                    natural join genres
         where id_genre = ?
         order title
