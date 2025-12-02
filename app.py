@@ -130,3 +130,155 @@ def get_movie(id):
                 movie=movie, sentiment_u=sentiment_u, sentiment_m =sentiment_m, genres=genres, writer=writer, director=director, created_by=created_by, cast=cast, rating=rating )   
     
     
+@APP.rout('/movies/search/<expr/>')
+def search_movie(expr):
+    search = { 'expr': expr}
+    expr = '%' + expr + '%'
+    movie = db.execute(
+         '''
+        select id_show, title
+        from shows
+        where title like ?
+        ''', [expr]
+    ).fetchall()
+    return render_template('movie-search.html', search=search, movies=movies)
+
+
+@APP.route('/writers/')
+def list_writers(id):
+    writers = db.execute(
+        '''
+        select id_name, name
+        from shows natural join writen_by 
+                   natural join people
+        order by name
+        ''').fetchall()
+    return render_template('writer-list.html', writers=writers)    
+    
+@APP.route('/writers/<int:id>/')
+def view_movies_by_writer(id):
+    writer = db.execute(
+        '''
+        select id_name, name
+        from people
+        where id_name = ?
+        ''',[id]
+    ).fetchone()
+
+    if writer is None:
+        abort(404, 'Actor id {} does exist.'.format(id))
+
+    movies = db.execute(
+        '''
+        select id_show, title
+        from shows natural join writen_by
+                   natural join people
+        where id_name = ?
+        order by title
+        ''',[id]
+    ).fetchall()
+
+    return render_template('writer.html', writer=writer, movies=movies)
+
+@APP.route('/writers/search/<expr>/')
+def search_writer(expr):
+    search = { 'expr': expr}
+    expr = '%' + expr + '%'
+    writers = db.execute(
+        '''
+        select id_name, name
+        from people
+        where name like ?
+        ''',[expr]
+    ).fetchall()
+
+    return render_template('writer-search.html', search=search, writers=writers)
+    
+
+@APP.route('/directors/')
+def list_directors(id):
+    directors = db.execute(
+        '''
+        select id_name, name
+        from shows natural join directed_by 
+                   natural join people
+        order by name
+        ''').fetchall()
+    return render_template('director-list.html', directors=directors)    
+    
+@APP.route('/directors/<int:id>/')
+def view_movies_by_director(id):
+    director = db.execute(
+        '''
+        select id_name, name
+        from people
+        where id_name = ?
+        ''',[id]
+    ).fetchone()
+
+    if director is None:
+        abort(404, 'Director id {} does exist.'.format(id))
+
+    movies = db.execute(
+        '''
+        select id_show, title
+        from shows natural join directed_by
+                   natural join people
+        where id_name = ?
+        order by title
+        ''',[id]
+    ).fetchall()
+
+    return render_template('director.html', director=director, movies=movies)
+
+@APP.route('/directors/search/<expr>/')
+def search_director(expr):
+    search = { 'expr': expr}
+    expr = '%' + expr + '%'
+    directors = db.execute(
+        '''
+        select id_name, name
+        from people
+        where name like ?
+        ''',[expr]
+    ).fetchall()
+
+    return render_template('director-search.html', search=search, directors=directors)
+
+
+# falta o  criador e os cast <-
+
+
+@APP.route('/genres/')
+def list_genres():
+    genres = db.execute(
+    '''
+    select id_genre, genre
+    from genres
+    order by genre  
+    ''').fetchall()
+
+@APP.route('/genres/<int:id>')
+def view_movies_by_genre(id):
+    genre = db.execute(
+    '''
+    select id_genre, genre
+    from genre
+    where id_genre = ?
+    ''',[id]).fetchone()
+
+    if genre is None:
+        abort(404, 'Genre id {} does not exit.'.format(id))
+    
+    movies = db.execute(
+        '''
+        select id_show, title
+        from shows natural join genre_by
+                   natural join genres
+        where id_genre = ?
+        order title
+        ''',[id]
+    ).fetchall()
+
+    return render_template('genre.html', genre=genre, movies=movies)
+
