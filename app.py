@@ -195,7 +195,7 @@ def search_writer(expr):
 
     return render_template('writer-search.html', search=search, writers=writers)
     
-#--- disrectors
+#--- directors
 
 @APP.route('/directors/')
 def list_directors():
@@ -389,4 +389,3 @@ def view_movies_by_genre(id):
     ).fetchall()
 
     return render_template('genre.html', genre=genre, movies=movies)
-
